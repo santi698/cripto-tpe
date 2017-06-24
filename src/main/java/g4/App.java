@@ -5,6 +5,7 @@ import java.awt.image.DataBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -16,7 +17,7 @@ public class App {
     BufferedImage image = ImageIO.read(App.class.getResource("/sin_secreto/Alfred.bmp"));
     Util.displayImage(image); // Displays Original image
     BufferedImage obfuscatedImage = new ImageObfuscator(150).obfuscate(image);
-    BufferedImage[] shadows = new ShadowGenerator(4, 4).generateShadows(obfuscatedImage);
+    List<BufferedImage> shadows = new ShadowGenerator(4, 6).generateShadows(obfuscatedImage);
     for (BufferedImage shadow : shadows) {
       Util.displayImage(shadow); // Displays shadows
     }
