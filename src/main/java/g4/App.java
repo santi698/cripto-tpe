@@ -42,8 +42,11 @@ public class App {
         break;
       case RETRIEVE:
         List<ShadowImage> shadows = recoverShadows(dir);
-        BufferedImage secretObfuscatedImage = new ShadowCombinator(Integer.valueOf(cmd.getOptionValue("r"))).restore(shadows);
-        BufferedImage secretImage = obfuscateImage(secretObfuscatedImage);
+        int width = shadows.get(0).getOriginalWidth();
+        int height = shadows.get(0).getOriginalHeight();
+        long seed = shadows.get(0).getSeed();
+        BufferedImage secretObfuscatedImage = new ShadowCombinator(Integer.valueOf(cmd.getOptionValue("r"))).restore(shadows, width, height);
+        BufferedImage secretImage = obfuscateImage(secretObfuscatedImage, seed);
         ImageIO.write(secretImage, "bmp", secretFile);
     }
   }
