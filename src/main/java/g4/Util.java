@@ -19,4 +19,19 @@ public class Util {
     frame.setVisible(true);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
   }
+
+  public static byte getBit(byte shadowByte,int position)
+  {
+    return (byte) ((shadowByte >> position) & 1);
+  }
+
+  public static byte setBitInByteAtIndex(byte bitToSet, byte byteToChange, int bitIndexToChange) {
+    byte b = byteToChange;
+    if (bitToSet == 1) {
+      b = (byte) (b | (1 << bitIndexToChange));
+    } else {
+      b = (byte) (b & ~(1 << bitIndexToChange));
+    }
+    return b;
+  }
 }
