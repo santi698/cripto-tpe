@@ -65,8 +65,8 @@ public class ShadowGenerator {
       }
       currentShadowPixel %= 257;
       if (currentShadowPixel == 256) {
-        int firstNonZeroIndex;
-        for (firstNonZeroIndex = 0; section.get(firstNonZeroIndex) == 0; firstNonZeroIndex++);
+        int firstNonZeroIndex = 0;
+        while (section.get(firstNonZeroIndex) == 0) { firstNonZeroIndex++; }
         section.set(firstNonZeroIndex, section.get(firstNonZeroIndex) - 1);
         shadowPixels = Arrays.asList(new Integer[shadowAmount]);
         shadowNumber = 0;
