@@ -1,8 +1,12 @@
 package g4;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -50,14 +54,62 @@ public class App {
 
   private static void saveShadows(List<BufferedImage> shadows, File dir) {
     assert dir.listFiles().length == shadows.size();
+    int  shadowIndex = 0;
     for (File file : dir.listFiles()) {
-      // TODO hide shadow in file
+
+      BufferedImage currentShadow = shadows.get(shadowIndex);
+      DataBuffer currentShadowDataBuffer = currentShadow.getRaster().getDataBuffer();
+
+      Path path = Paths.get(file.getPath());
+      try{
+          byte[] fileByteArray = Files.readAllBytes(path);
+          for (int shadowByteIndex=0;shadowByteIndex<currentShadowDataBuffer.getSize();shadowByteIndex++) {
+
+              byte shadowByte = (byte)(currentShadowDataBuffer.getElem(shadowByteIndex));
+
+              for (int shadowBitIndex=0;shadowBitIndex<8;shadowBitIndex++) {
+                  // En el archivo a guardar cada bit de la sombra, debo acceder al byte(bit). El numero de bit en la iteracion es
+                  // (nro de bytes * 8) + nro de bit.
+                  byte fileByte = fileByteArray[shadowBitIndex+(shadowByteIndex*8)];
+                  fileByteArray[shadowBitIndex+(shadowByteIndex*8)]=Util.setBitInByteAtIndex(Util.getBit(shadowByte, shadowBitIndex),fileByte,0);
+              }
+          }
+      }
+      catch(Exception e){
+
+      }
+
+      shadowIndex++;
     }
   }
 
   private static List<ShadowImage> recoverShadows(File dir) {
-    // TODO
-    return Collections.emptyList();
+      List<ShadowImage> shadows = new ArrayList<ShadowImage>();
+      int shadowIndex=0;
+      try{
+          for (File file : dir.listFiles()) {
+              BufferedImage originalImage = ImageIO.read(file);
+              DataBuffer originalImageDataBuffer = originalImage.getRaster().getDataBuffer();
+              int width = originalImage.getWidth();
+              int height = originalImage.getHeight();
+              BufferedImage hiddenImage = new BufferedImage(width,height,BufferedImage.TYPE_BYTE_GRAY);
+              DataBuffer hiddenImageDataBuffer = hiddenImage.getRaster().getDataBuffer();
+
+              for (int bufferIndex=0;bufferIndex<hiddenImageDataBuffer.getSize();bufferIndex++) {
+                  byte hiddenImageByte = (byte)(hiddenImageDataBuffer.getElem(bufferIndex));
+                  for (int bitIndex=0;bitIndex<8;bitIndex++) {
+                      Util.setBitInByteAtIndex(Util.getBit((byte)originalImageDataBuffer.getElem(bufferIndex),0),hiddenImageByte,bitIndex);
+                  }
+                  hiddenImageDataBuffer.setElem(bufferIndex,hiddenImageByte);
+              }
+              shadows.add(new ShadowImage(hiddenImage,shadowIndex));
+              shadowIndex++;
+          }
+      }catch(Exception e){
+
+      }
+      //return Collections.emptyList();
+      return shadows;
   }
 
   private static BufferedImage obfuscateImage(BufferedImage image) {
