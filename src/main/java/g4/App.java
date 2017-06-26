@@ -14,6 +14,7 @@ import java.util.Random;
 
 import javax.imageio.ImageIO;
 
+import g4.util.AppUtil;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
@@ -30,23 +31,28 @@ import g4.util.Images;
 import org.apache.commons.io.FilenameUtils;
 
 public class App {
+
   public static void main(String[] args) throws Exception {
     int seed;
-    CommandLine cmd = getCommandLine(args);
-    File dir = Paths.get(cmd.getOptionValue("dir")).toFile();
-    File secretFile = Paths.get(cmd.getOptionValue("secret")).toFile().getCanonicalFile();
+    CommandLine cmd = AppUtil.getCommandLine(args);
+    File dir = AppUtil.getDir(cmd);
+
+    File secretFile = AppUtil.getSecretFile(cmd);
+
+    int n = AppUtil.getN(cmd, dir);
+    int k = AppUtil.getK(cmd, n);
+
     AppMode mode = cmd.hasOption("d") ? AppMode.DISTRIBUTE : AppMode.RETRIEVE;
+
     switch(mode) {
       case DISTRIBUTE:
-        int k = Integer.valueOf(cmd.getOptionValue("k"));
-        int n = Integer.valueOf(cmd.getOptionValue("n"));
         seed = new Random().nextInt();
         BufferedImage image = ImageIO.read(secretFile);
         Images.displayImage(image);
         BufferedImage obfuscatedImage = obfuscateImage(image, seed);
         List<BufferedImage> generatedShadows = new ShadowGenerator(k, n).generateShadows(obfuscatedImage);
         List<ShadowImage> shadowsWithMetadata = new ArrayList<>(k);
-        for (int shadowNumber = 0; shadowNumber <= generatedShadows.size(); shadowNumber++) {
+        for (int shadowNumber = 0; shadowNumber < generatedShadows.size(); shadowNumber++) {
           BufferedImage shadow = generatedShadows.get(shadowNumber);
           shadowsWithMetadata.add(shadowNumber, new ShadowImage(shadow, shadowNumber, seed, image.getWidth(), image.getHeight()));
         }
@@ -57,7 +63,7 @@ public class App {
         int width = shadows.get(0).getOriginalWidth();
         int height = shadows.get(0).getOriginalHeight();
         seed = shadows.get(0).getSeed();
-        BufferedImage secretObfuscatedImage = new ShadowCombinator(Integer.valueOf(cmd.getOptionValue("k"))).restore(shadows, width, height);
+        BufferedImage secretObfuscatedImage = new ShadowCombinator(k).restore(shadows, width, height);
         BufferedImage secretImage = obfuscateImage(secretObfuscatedImage, seed);
         ImageIO.write(secretImage, "bmp", secretFile);
     }
@@ -68,7 +74,9 @@ public class App {
     int  shadowIndex = 0;
     List<BMPManager> bmpManagers = new ArrayList<>(shadows.size());
     for (File file : dir.listFiles()) {
-      bmpManagers.add(new BMPManager(file));
+      if(FilenameUtils.getExtension(file.getName()).equals("bmp")) {
+        bmpManagers.add(new BMPManager(file));
+      }
     }
     for (BMPManager bmpManager : bmpManagers) {
       byte[] carrierImageData = bmpManager.getImageData();
@@ -96,7 +104,8 @@ public class App {
     List<ShadowImage> shadows = new ArrayList<ShadowImage>();
     List<BMPManager> bmpManagers = new ArrayList<>(shadows.size());
     for (File file : dir.listFiles()) {
-      if(FilenameUtils.getExtension(file.getName()).equals(".bmp")){
+
+      if(FilenameUtils.getExtension(file.getName()).equals("bmp")){
         bmpManagers.add(new BMPManager(file));
       }
     }
@@ -106,7 +115,7 @@ public class App {
       int order = manager.getReservedZone2();
       int width = manager.getWidth();
       int height = manager.getHeight();
-      
+
       byte[] shadowData = new byte[width * height / 8];
 
       for (int shadowPixel = 0; shadowPixel < shadowData.length; shadowPixel++) {
@@ -125,63 +134,5 @@ public class App {
   private static BufferedImage obfuscateImage(BufferedImage image, int seed) {
     return new ImageObfuscator(seed).obfuscate(image);
   }
-  private static Options commandLineOptions() {
-    Options options = new Options();
-    Option k = Option.builder("k").required()
-                                 .hasArg()
-                                 .desc("The k parameter of the Shamir schema")
-                                 .build();
-    Option n = Option.builder("n").required()
-                                  .hasArg()
-                                  .desc("The number of shadows to generate (must be less than or equal " +
-                                                  "to the amount of files in the directory specified by -dir")
-                                  .build();
-    Option d = Option.builder("d").desc("Distribute in carrier images (used with -n)").build();
-    Option r = Option.builder("r").desc("Recover from a set of carrier images").build();
-    Option secret = Option.builder("secret")
-                          .hasArg()
-                          .required()
-                          .desc("The image to hide (if used with -d), or the file to write " +
-                                "the output to (if used with -r)")
-                          .build();
-    Option dir = Option.builder("dir")
-                       .hasArg()
-                       .required()
-                       .desc("The directory of the carrier images (if used with -d), " +
-                             "or the directory containing the carrier images to " +
-                             "recover the secret from")
-                       .build();
-    return options.addOption(k)
-                  .addOption(n)
-                  .addOption(d)
-                  .addOption(r)
-                  .addOption(secret)
-                  .addOption(dir);
-  }
 
-  private static CommandLine getCommandLine(String[] args) throws ParseException {
-    CommandLine cmd = new DefaultParser().parse(commandLineOptions(), args);
-    String mode = getMode(cmd);
-    validateModeOptions(mode, cmd);
-    return cmd;
-  }
-
-  private static String getMode(CommandLine cmd) {
-    Boolean distribute = cmd.hasOption("d");
-    Boolean recover = cmd.hasOption("r");
-    if (recover == distribute) {
-      System.out.println("Either -d or -r must be specified");
-      System.exit(1);
-    }
-    return distribute ? "d" : "r";
-  }
-
-  private static void validateModeOptions(String mode, CommandLine cmd) {
-    if (mode == "d") {
-      if (!cmd.hasOption("k") || !cmd.hasOption("n")) {
-        System.out.println("Parameters k and n are required for distributing");
-        System.exit(1);
-      }
-    }
-  }
 }
