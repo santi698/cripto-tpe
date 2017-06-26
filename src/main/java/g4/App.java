@@ -118,7 +118,7 @@ public class App {
       for (int shadowPixel = 0; shadowPixel < shadowData.length; shadowPixel++) {
         shadowData[shadowPixel] = hider.recover(carrierImageData, shadowPixel * 8);
       }
-      BufferedImage shadowImage = new BufferedImage(width / 8, height, BufferedImage.TYPE_BYTE_GRAY);
+      BufferedImage shadowImage = new BufferedImage(width * height / 8, 1, BufferedImage.TYPE_BYTE_GRAY);
       shadowImage.setData(Raster.createRaster(shadowImage.getSampleModel(), new DataBufferByte(shadowData, shadowData.length), new Point()));
       shadows.add(new ShadowImage(shadowImage, order, seed, width, height));
     }
