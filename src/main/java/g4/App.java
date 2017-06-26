@@ -27,6 +27,7 @@ import g4.crypto.ShadowImage;
 import g4.steganography.BMPManager;
 import g4.util.BitManipulation;
 import g4.util.Images;
+import org.apache.commons.io.FilenameUtils;
 
 public class App {
   public static void main(String[] args) throws Exception {
@@ -95,7 +96,9 @@ public class App {
     List<ShadowImage> shadows = new ArrayList<ShadowImage>();
     List<BMPManager> bmpManagers = new ArrayList<>(shadows.size());
     for (File file : dir.listFiles()) {
-      bmpManagers.add(new BMPManager(file));
+      if(FilenameUtils.getExtension(file.getName()).equals(".bmp")){
+        bmpManagers.add(new BMPManager(file));
+      }
     }
     for (BMPManager manager: bmpManagers) {
       byte[] carrierImageData = manager.getImageData();
