@@ -27,6 +27,7 @@ import g4.crypto.ShadowImage;
 import g4.steganography.BMPManager;
 import g4.util.BitManipulation;
 import g4.util.Images;
+import org.apache.commons.io.FilenameUtils;
 
 public class App {
   public static void main(String[] args) throws Exception {
@@ -45,7 +46,7 @@ public class App {
         BufferedImage obfuscatedImage = obfuscateImage(image, seed);
         List<BufferedImage> generatedShadows = new ShadowGenerator(k, n).generateShadows(obfuscatedImage);
         List<ShadowImage> shadowsWithMetadata = new ArrayList<>(k);
-        for (int shadowNumber = 0; shadowNumber <= generatedShadows.size(); shadowNumber++) {
+        for (int shadowNumber = 0; shadowNumber < generatedShadows.size(); shadowNumber++) {
           BufferedImage shadow = generatedShadows.get(shadowNumber);
           shadowsWithMetadata.add(shadowNumber, new ShadowImage(shadow, shadowNumber, seed, image.getWidth(), image.getHeight()));
         }
@@ -67,7 +68,9 @@ public class App {
     int  shadowIndex = 0;
     List<BMPManager> bmpManagers = new ArrayList<>(shadows.size());
     for (File file : dir.listFiles()) {
-      bmpManagers.add(new BMPManager(file));
+      if(FilenameUtils.getExtension(file.getName()).equals("bmp")) {
+        bmpManagers.add(new BMPManager(file));
+      }
     }
     for (BMPManager bmpManager : bmpManagers) {
       byte[] carrierImageData = bmpManager.getImageData();
@@ -95,7 +98,9 @@ public class App {
     List<ShadowImage> shadows = new ArrayList<ShadowImage>();
     List<BMPManager> bmpManagers = new ArrayList<>(shadows.size());
     for (File file : dir.listFiles()) {
-      bmpManagers.add(new BMPManager(file));
+      if(FilenameUtils.getExtension(file.getName()).equals("bmp")){
+        bmpManagers.add(new BMPManager(file));
+      }
     }
     for (BMPManager manager: bmpManagers) {
       byte[] carrierImageData = manager.getImageData();
@@ -103,7 +108,7 @@ public class App {
       int order = manager.getReservedZone2();
       int width = manager.getWidth();
       int height = manager.getHeight();
-      
+
       byte[] shadowData = new byte[width * height / 8];
 
       for (int shadowPixel = 0; shadowPixel < shadowData.length; shadowPixel++) {
