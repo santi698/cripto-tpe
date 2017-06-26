@@ -4,11 +4,11 @@ import java.awt.image.BufferedImage;
 public class ShadowImage {
   private BufferedImage image;
   private int order;
-  private long seed;
+  private int seed;
   private int originalWidth;
   private int originalHeight;
 
-  public ShadowImage(BufferedImage image, int order, long seed, int originalWidth, int originalHeight) {
+  public ShadowImage(BufferedImage image, int order, int seed, int originalWidth, int originalHeight) {
     this.image = image;
     this.order = order;
     this.seed = seed;
@@ -24,7 +24,7 @@ public class ShadowImage {
     return order;
   }
 
-  public long getSeed() {
+  public int getSeed() {
     return seed;
   }
 

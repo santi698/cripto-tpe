@@ -1,13 +1,14 @@
 package g4;
 
+import java.awt.Point;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
+import java.awt.image.Raster;
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -23,9 +24,13 @@ import g4.crypto.ImageObfuscator;
 import g4.crypto.ShadowCombinator;
 import g4.crypto.ShadowGenerator;
 import g4.crypto.ShadowImage;
+import g4.steganography.BMPManager;
+import g4.util.BitManipulation;
+import g4.util.Images;
 
 public class App {
   public static void main(String[] args) throws Exception {
+    int seed;
     CommandLine cmd = getCommandLine(args);
     File dir = Paths.get(cmd.getOptionValue("dir")).toFile();
     File secretFile = Paths.get(cmd.getOptionValue("secret")).toFile().getCanonicalFile();
@@ -34,93 +39,87 @@ public class App {
       case DISTRIBUTE:
         int k = Integer.valueOf(cmd.getOptionValue("k"));
         int n = Integer.valueOf(cmd.getOptionValue("n"));
+        seed = new Random().nextInt();
         BufferedImage image = ImageIO.read(secretFile);
-        Util.displayImage(image);
-        BufferedImage obfuscatedImage = obfuscateImage(image);
+        Images.displayImage(image);
+        BufferedImage obfuscatedImage = obfuscateImage(image, seed);
         List<BufferedImage> generatedShadows = new ShadowGenerator(k, n).generateShadows(obfuscatedImage);
-        for (BufferedImage shadow : generatedShadows) {
-          Util.displayImage(shadow);
+        List<ShadowImage> shadowsWithMetadata = new ArrayList<>(k);
+        for (int shadowNumber = 0; shadowNumber <= generatedShadows.size(); shadowNumber++) {
+          BufferedImage shadow = generatedShadows.get(shadowNumber);
+          shadowsWithMetadata.add(shadowNumber, new ShadowImage(shadow, shadowNumber, seed, image.getWidth(), image.getHeight()));
         }
-        saveShadows(generatedShadows, dir);
+        saveShadows(shadowsWithMetadata, dir);
         System.exit(0);
-        break;
       case RETRIEVE:
         List<ShadowImage> shadows = recoverShadows(dir);
         int width = shadows.get(0).getOriginalWidth();
         int height = shadows.get(0).getOriginalHeight();
-        long seed = shadows.get(0).getSeed();
-        BufferedImage secretObfuscatedImage = new ShadowCombinator(Integer.valueOf(cmd.getOptionValue("r"))).restore(shadows, width, height);
+        seed = shadows.get(0).getSeed();
+        BufferedImage secretObfuscatedImage = new ShadowCombinator(Integer.valueOf(cmd.getOptionValue("k"))).restore(shadows, width, height);
         BufferedImage secretImage = obfuscateImage(secretObfuscatedImage, seed);
         ImageIO.write(secretImage, "bmp", secretFile);
     }
   }
 
-  private static void saveShadows(List<BufferedImage> shadows, File dir) {
+  private static void saveShadows(List<ShadowImage> shadows, File dir) throws IOException {
     assert dir.listFiles().length == shadows.size();
     int  shadowIndex = 0;
+    List<BMPManager> bmpManagers = new ArrayList<>(shadows.size());
     for (File file : dir.listFiles()) {
-
-      BufferedImage currentShadow = shadows.get(shadowIndex);
-      DataBuffer currentShadowDataBuffer = currentShadow.getRaster().getDataBuffer();
-
-      Path path = Paths.get(file.getPath());
-      try{
-          byte[] fileByteArray = Files.readAllBytes(path);
-          for (int shadowByteIndex=0;shadowByteIndex<currentShadowDataBuffer.getSize();shadowByteIndex++) {
-
-              byte shadowByte = (byte)(currentShadowDataBuffer.getElem(shadowByteIndex));
-
-              for (int shadowBitIndex=0;shadowBitIndex<8;shadowBitIndex++) {
-                  // En el archivo a guardar cada bit de la sombra, debo acceder al byte(bit). El numero de bit en la iteracion es
-                  // (nro de bytes * 8) + nro de bit.
-                  byte fileByte = fileByteArray[shadowBitIndex+(shadowByteIndex*8)];
-                  fileByteArray[shadowBitIndex+(shadowByteIndex*8)]=Util.setBitInByteAtIndex(Util.getBit(shadowByte, shadowBitIndex),fileByte,0);
-              }
-          }
+      bmpManagers.add(new BMPManager(file));
+    }
+    for (BMPManager bmpManager : bmpManagers) {
+      byte[] carrierImageData = bmpManager.getImageData();
+      ShadowImage currentShadow = shadows.get(shadowIndex);
+      bmpManager.setReservedZone1(currentShadow.getSeed());
+      bmpManager.setReservedZone2(currentShadow.getOrder());
+      BufferedImage currentShadowData = shadows.get(shadowIndex).getImage();
+      DataBuffer currentShadowDataBuffer = currentShadowData.getRaster().getDataBuffer();
+      for (int shadowByteIndex = 0; shadowByteIndex < currentShadowDataBuffer.getSize(); shadowByteIndex++) {
+        byte shadowByte = (byte) (currentShadowDataBuffer.getElem(shadowByteIndex));
+        for (int shadowBitIndex = 0; shadowBitIndex < 8; shadowBitIndex++) {
+          // En el archivo a guardar cada bit de la sombra, debo acceder al byte(bit). El numero de bit en la iteracion es
+          // (nro de bytes * 8) + nro de bit.
+          int carrierPixel = shadowBitIndex + (shadowByteIndex * 8);
+          byte fileByte = carrierImageData[carrierPixel];
+          carrierImageData[carrierPixel] = BitManipulation.setLSB(BitManipulation.getBit(shadowByte, 7 - shadowBitIndex), fileByte);
+        }
       }
-      catch(Exception e){
-
-      }
-
       shadowIndex++;
+      bmpManager.setImageData(carrierImageData);
     }
   }
 
-  private static List<ShadowImage> recoverShadows(File dir) {
-      List<ShadowImage> shadows = new ArrayList<ShadowImage>();
-      int shadowIndex=0;
-      try{
-          for (File file : dir.listFiles()) {
-              BufferedImage originalImage = ImageIO.read(file);
-              DataBuffer originalImageDataBuffer = originalImage.getRaster().getDataBuffer();
-              int width = originalImage.getWidth();
-              int height = originalImage.getHeight();
-              BufferedImage hiddenImage = new BufferedImage(width,height,BufferedImage.TYPE_BYTE_GRAY);
-              DataBuffer hiddenImageDataBuffer = hiddenImage.getRaster().getDataBuffer();
+  private static List<ShadowImage> recoverShadows(File dir) throws IOException {
+    List<ShadowImage> shadows = new ArrayList<ShadowImage>();
+    List<BMPManager> bmpManagers = new ArrayList<>(shadows.size());
+    for (File file : dir.listFiles()) {
+      bmpManagers.add(new BMPManager(file));
+    }
+    for (BMPManager manager: bmpManagers) {
+      byte[] carrierImageData = manager.getImageData();
+      int seed = manager.getReservedZone1();
+      int order = manager.getReservedZone2();
+      int width = manager.getWidth();
+      int height = manager.getHeight();
+      
+      byte[] shadowData = new byte[width * height / 8];
 
-              for (int bufferIndex=0;bufferIndex<hiddenImageDataBuffer.getSize();bufferIndex++) {
-                  byte hiddenImageByte = (byte)(hiddenImageDataBuffer.getElem(bufferIndex));
-                  for (int bitIndex=0;bitIndex<8;bitIndex++) {
-                      Util.setBitInByteAtIndex(Util.getBit((byte)originalImageDataBuffer.getElem(bufferIndex),0),hiddenImageByte,bitIndex);
-                  }
-                  hiddenImageDataBuffer.setElem(bufferIndex,hiddenImageByte);
-              }
-              shadows.add(new ShadowImage(hiddenImage,shadowIndex));
-              shadowIndex++;
-          }
-      }catch(Exception e){
-
+      for (int shadowPixel = 0; shadowPixel < shadowData.length; shadowPixel++) {
+        for (int bitIndex = 0; bitIndex < 8; bitIndex++) {
+          byte currentBit = BitManipulation.getLSB((byte) carrierImageData[shadowPixel * 8 + bitIndex]);
+          shadowData[shadowPixel] = BitManipulation.setBitInByteAtIndex(currentBit, shadowData[shadowPixel], 7 - bitIndex);
+        }
       }
-      //return Collections.emptyList();
-      return shadows;
+      BufferedImage shadowImage = new BufferedImage(width / 8, height, BufferedImage.TYPE_BYTE_GRAY);
+      shadowImage.setData(Raster.createRaster(shadowImage.getSampleModel(), new DataBufferByte(shadowData, shadowData.length), new Point()));
+      shadows.add(new ShadowImage(shadowImage, order, seed, width, height));
+    }
+    return shadows;
   }
 
-  private static BufferedImage obfuscateImage(BufferedImage image) {
-    long seed = new Random().nextLong();
-    System.out.println("Obfuscating with seed " + seed);
-    return obfuscateImage(image, seed);
-  }
-  private static BufferedImage obfuscateImage(BufferedImage image, long seed) {
+  private static BufferedImage obfuscateImage(BufferedImage image, int seed) {
     return new ImageObfuscator(seed).obfuscate(image);
   }
   private static Options commandLineOptions() {

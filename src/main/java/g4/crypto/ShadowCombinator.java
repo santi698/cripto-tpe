@@ -1,7 +1,7 @@
 package g4.crypto;
 
-import g4.Util;
 import g4.util.GaussianElimination;
+import g4.util.Images;
 import g4.util.Rational;
 
 import java.awt.*;
@@ -85,16 +85,16 @@ public class ShadowCombinator {
   public static void main(String[] args) throws Exception {
     int r = 2;
     int n = 2;
-    long seed = 1;
+    int seed = 1;
     ImageObfuscator obfuscator = new ImageObfuscator(seed);
     BufferedImage image = ImageIO.read(Paths.get("src/main/resources/sin_secreto/Alfred.bmp").toFile());
-    Util.displayImage(image);
+    Images.displayImage(image);
     BufferedImage obfuscatedImage = obfuscator.obfuscate(image);
     List<BufferedImage> generatedShadows = new ShadowGenerator(r, n).generateShadows(obfuscatedImage);
     List<ShadowImage> shadows = new ArrayList<>(r);
     shadows.add(0, new ShadowImage(generatedShadows.get(0), 1, seed, image.getWidth(), image.getHeight()));
     shadows.add(1, new ShadowImage(generatedShadows.get(1), 2, seed, image.getWidth(), image.getHeight()));
     BufferedImage secret = new ShadowCombinator(r).restore(shadows, image.getWidth(), image.getHeight());
-    Util.displayImage(obfuscator.obfuscate(secret));
+    Images.displayImage(obfuscator.obfuscate(secret));
   }
 }
