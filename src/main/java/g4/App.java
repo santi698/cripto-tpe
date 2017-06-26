@@ -52,10 +52,10 @@ public class App {
         Images.displayImage(image);
         BufferedImage obfuscatedImage = obfuscateImage(image, seed);
         List<BufferedImage> generatedShadows = new ShadowGenerator(k, n).generateShadows(obfuscatedImage);
-        List<ShadowImage> shadowsWithMetadata = new ArrayList<>(k);
+        List<ShadowImage> shadowsWithMetadata = new ArrayList<>(n);
         for (int shadowNumber = 0; shadowNumber < generatedShadows.size(); shadowNumber++) {
           BufferedImage shadow = generatedShadows.get(shadowNumber);
-          shadowsWithMetadata.add(shadowNumber, new ShadowImage(shadow, shadowNumber, seed, image.getWidth(), image.getHeight()));
+          shadowsWithMetadata.add(shadowNumber, new ShadowImage(shadow, shadowNumber + 1, seed, image.getWidth(), image.getHeight()));
         }
         saveShadows(shadowsWithMetadata, dir);
         System.exit(0);
@@ -64,19 +64,7 @@ public class App {
         int width = shadows.get(0).getOriginalWidth();
         int height = shadows.get(0).getOriginalHeight();
         seed = shadows.get(0).getSeed();
-<<<<<<< 4fae8c0d8496eaefb3f6798050a1b3bae10ac1bc
         BufferedImage secretObfuscatedImage = new ShadowCombinator(k).restore(shadows, width, height);
-=======
-        BufferedImage secretObfuscatedImage = new ShadowCombinator(Integer.valueOf(cmd.getOptionValue("k"))).restore(shadows, width, height);
-        System.out.println(secretObfuscatedImage.getRaster().getDataBuffer().getElem(0));
-        System.out.println(secretObfuscatedImage.getRaster().getDataBuffer().getElem(1));
-        System.out.println(secretObfuscatedImage.getRaster().getDataBuffer().getElem(2));
-        System.out.println(secretObfuscatedImage.getRaster().getDataBuffer().getElem(3));
-        System.out.println(secretObfuscatedImage.getRaster().getDataBuffer().getElem(4));
-        System.out.println(secretObfuscatedImage.getRaster().getDataBuffer().getElem(5));
-        System.out.println(secretObfuscatedImage.getRaster().getDataBuffer().getElem(6));
-        System.out.println(secretObfuscatedImage.getRaster().getDataBuffer().getElem(7));
->>>>>>> [WIP] Removed Rational and converted GaussianElimination to mod 257
         BufferedImage secretImage = obfuscateImage(secretObfuscatedImage, seed);
         ImageIO.write(secretImage, "bmp", secretFile);
     }
@@ -140,48 +128,4 @@ public class App {
   private static BufferedImage obfuscateImage(BufferedImage image, int seed) {
     return new ImageObfuscator(seed).obfuscate(image);
   }
-<<<<<<< 4fae8c0d8496eaefb3f6798050a1b3bae10ac1bc
-=======
-    private static Options commandLineOptions() {
-    Options options = new Options();
-    Option k = Option.builder("k").required()
-                                 .hasArg()
-                                 .desc("The k parameter of the Shamir schema")
-                                 .build();
-    Option n = Option.builder("n").required()
-                                  .hasArg()
-                                  .desc("The number of shadows to generate (must be less than or equal " +
-                                                  "to the amount of files in the directory specified by -dir")
-                                  .build();
-    Option d = Option.builder("d").desc("Distribute in carrier images (used with -n)").build();
-    Option r = Option.builder("r").desc("Recover from a set of carrier images").build();
-    Option secret = Option.builder("secret")
-                          .hasArg()
-                          .required()
-                          .desc("The image to hide (if used with -d), or the file to write " +
-                                "the output to (if used with -r)")
-                          .build();
-    Option dir = Option.builder("dir")
-                       .hasArg()
-                       .required()
-                       .desc("The directory of the carrier images (if used with -d), " +
-                             "or the directory containing the carrier images to " +
-                             "recover the secret from")
-                       .build();
-    return options.addOption(k)
-                  .addOption(n)
-                  .addOption(d)
-                  .addOption(r)
-                  .addOption(secret)
-                  .addOption(dir);
-  }
-
-  private static CommandLine getCommandLine(String[] args) throws ParseException {
-    CommandLine cmd = new DefaultParser().parse(commandLineOptions(), args);
-    String mode = getMode(cmd);
-    validateModeOptions(mode, cmd);
-    return cmd;
-  }
->>>>>>> [WIP] Removed Rational and converted GaussianElimination to mod 257
-
 }

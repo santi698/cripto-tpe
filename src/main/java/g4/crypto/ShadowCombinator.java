@@ -29,16 +29,16 @@ public class ShadowCombinator {
     shadows = shadows.subList(0, r); // Keep only r if given more
     int sizeArray = shadows.get(0).getImage().getRaster().getDataBuffer().getSize();
     for(int pixelIndex = 0; pixelIndex < sizeArray; pixelIndex++){
-      int[][] mat = new int[r][r];
+      int[][] mat = new int[r][r+1];
       int[] y = new int[r];
       for(int shadowIndex = 0; shadowIndex < r; shadowIndex++){
         DataBuffer shadow = shadows.get(shadowIndex).getImage().getRaster().getDataBuffer();
         for(int xPower = 0; xPower < r; xPower++) {
           mat[shadowIndex][xPower] = (int) Math.pow(shadows.get(shadowIndex).getOrder(), xPower);
         }
-        y[shadowIndex] = shadow.getElem(pixelIndex);
+        mat[shadowIndex][r] = shadow.getElem(pixelIndex);
       }
-      int[] coefficients = GaussianElimination.lsolve(mat, y);
+      int[] coefficients = GaussianElimination.lsolve(mat);
       byte[] pixels = normalizeCoefficients(coefficients);
       for(int offset = 0; offset < pixels.length; offset++) {
         result[pixelIndex * r + offset] = pixels[offset];

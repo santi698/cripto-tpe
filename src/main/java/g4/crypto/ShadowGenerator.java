@@ -2,6 +2,7 @@ package g4.crypto;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -17,9 +18,9 @@ public class ShadowGenerator {
   }
 
   private void initializeShadows(BufferedImage sourceImage) {
-    this.shadows = Arrays.asList(new BufferedImage[shadowAmount]);
+    this.shadows = new ArrayList<>(shadowAmount);
     for (int shadowIndex = 0; shadowIndex < shadowAmount; shadowIndex++) {
-      this.shadows.set(shadowIndex, new BufferedImage(sourceImage.getWidth() * 2 / r, sourceImage.getHeight() / 2, BufferedImage.TYPE_BYTE_GRAY));
+      this.shadows.add(shadowIndex, new BufferedImage(sourceImage.getWidth() * 2 / r, sourceImage.getHeight() / 2, BufferedImage.TYPE_BYTE_GRAY));
     }
   }
 
