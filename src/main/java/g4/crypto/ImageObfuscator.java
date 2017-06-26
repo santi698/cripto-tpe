@@ -21,23 +21,26 @@ public class ImageObfuscator {
   }
 
   private static class ObfuscationTable {
-    private byte[] table;
+    private int[] table;
     private Random randomGenerator;
 
     public ObfuscationTable(int size, long seed) {
       randomGenerator = new Random(seed);
-      table = new byte[size];
-      randomGenerator.nextBytes(table);
+      table = new int[size];
+      //randomGenerator.nextBytes(table);
+      for (int i = 0; i < size; i++) {
+        table[i] = randomGenerator.nextInt(256);
+      }
     }
 
     public int get(int x) {
       assert x > 0 && x < table.length;
-      return 0xFF&table[x]; // the 0xFF& part forces unsigned interpretation
+      return table[x];
     }
 
     public int get(int x, int y, int width) {
       assert x + y * width < table.length;
-      return 0xFF&table[x + y * width]; // the 0xFF& part forces unsigned interpretation
+      return table[x + y * width];
     }
   }
 }

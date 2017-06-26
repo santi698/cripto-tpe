@@ -19,7 +19,7 @@ public class ShadowGenerator {
   private void initializeShadows(BufferedImage sourceImage) {
     this.shadows = Arrays.asList(new BufferedImage[shadowAmount]);
     for (int shadowIndex = 0; shadowIndex < shadowAmount; shadowIndex++) {
-      this.shadows.set(shadowIndex, new BufferedImage(sourceImage.getWidth() / r, sourceImage.getHeight(), BufferedImage.TYPE_BYTE_GRAY));
+      this.shadows.set(shadowIndex, new BufferedImage(sourceImage.getWidth() * 2 / r, sourceImage.getHeight() / 2, BufferedImage.TYPE_BYTE_GRAY));
     }
   }
 
@@ -44,9 +44,6 @@ public class ShadowGenerator {
 
   private void setShadowsPixel(int pixelIndex, List<Integer> pixelShadows) {
     assert pixelShadows.size() == shadowAmount;
-    if (pixelIndex >= shadows.get(0).getWidth() * shadows.get(0).getHeight()) {
-      return;
-    }
     for (int shadowIndex = 0; shadowIndex < shadowAmount; shadowIndex++) {
       DataBuffer buffer = this.shadows.get(shadowIndex).getRaster().getDataBuffer();
       buffer.setElem(pixelIndex, pixelShadows.get(shadowIndex));
@@ -75,7 +72,6 @@ public class ShadowGenerator {
         shadowNumber++;
       }
     }
-
     return shadowPixels;
   }
 }
