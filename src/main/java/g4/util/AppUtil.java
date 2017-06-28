@@ -142,12 +142,12 @@ public class AppUtil {
     }
 
     private static void validateN(int n, int bmpFileInDirectory) {
-        if(n < 2){
+        if(n < 2) {
             System.err.println("n value can't be lower than 2.");
             System.exit(1);
         }
-        if(n != bmpFileInDirectory){
-            System.err.println("n value is different from bmp files in directory.");
+        if(n > bmpFileInDirectory) {
+            System.err.println("n value is higher than the count of bmp files in directory.");
             System.exit(1);
         }
     }

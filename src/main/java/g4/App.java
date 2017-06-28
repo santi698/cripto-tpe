@@ -57,10 +57,11 @@ public class App {
           BufferedImage shadow = generatedShadows.get(shadowNumber);
           shadowsWithMetadata.add(shadowNumber, new ShadowImage(shadow, shadowNumber + 1, seed, image.getWidth(), image.getHeight()));
         }
-        saveShadows(shadowsWithMetadata, dir);
+        saveShadows(shadowsWithMetadata, dir, n);
         break;
       case RETRIEVE:
-        List<ShadowImage> shadows = recoverShadows(dir);
+        List<ShadowImage> shadows = recoverShadows(dir, k);
+
         int width = shadows.get(0).getOriginalWidth();
         int height = shadows.get(0).getOriginalHeight();
         seed = shadows.get(0).getSeed();
@@ -70,7 +71,7 @@ public class App {
     }
   }
 
-  private static void saveShadows(List<ShadowImage> shadows, File dir) throws IOException {
+  private static void saveShadows(List<ShadowImage> shadows, File dir, int n) throws IOException {
     assert dir.listFiles().length == shadows.size();
     BufferedImage sampleShadow = shadows.get(0).getImage();
     int minimumSize = sampleShadow.getWidth() * sampleShadow.getHeight() * shadows.size() / 8;
@@ -90,10 +91,12 @@ public class App {
       System.err.println("Se necesitan al menos " + shadows.size() + " en el directorio de destino");
       System.exit(1);
     }
+    bmpManagers = bmpManagers.subList(0, n);
     for (BMPManager bmpManager : bmpManagers) {
+      System.out.println("Saving shadow " + (shadowIndex + 1) + " in file " + bmpManager.getFile());
       byte[] carrierImageData = bmpManager.getImageData();
       ShadowImage currentShadow = shadows.get(shadowIndex);
-      
+
       bmpManager.setReservedZone1(currentShadow.getSeed());
       bmpManager.setReservedZone2(currentShadow.getOrder());
       BufferedImage currentShadowData = shadows.get(shadowIndex).getImage();
@@ -112,16 +115,16 @@ public class App {
     }
   }
 
-  private static List<ShadowImage> recoverShadows(File dir) throws IOException {
+  private static List<ShadowImage> recoverShadows(File dir, int k) throws IOException {
     LSBHider hider = new LSBHider();
     List<ShadowImage> shadows = new ArrayList<ShadowImage>();
     List<BMPManager> bmpManagers = new ArrayList<>(shadows.size());
     for (File file : dir.listFiles()) {
-
       if(FilenameUtils.getExtension(file.getName()).equals("bmp")){
         bmpManagers.add(new BMPManager(file));
       }
     }
+    bmpManagers = bmpManagers.subList(0, k);
     for (BMPManager manager: bmpManagers) {
       byte[] carrierImageData = manager.getImageData();
       int seed = manager.getReservedZone1();
@@ -129,12 +132,12 @@ public class App {
       int width = manager.getWidth();
       int height = manager.getHeight();
 
-      byte[] shadowData = new byte[width * height / 8];
+      byte[] shadowData = new byte[width * height / k];
 
       for (int shadowPixel = 0; shadowPixel < shadowData.length; shadowPixel++) {
         shadowData[shadowPixel] = hider.recover(carrierImageData, shadowPixel * 8);
       }
-      BufferedImage shadowImage = new BufferedImage(width * height / 8, 1, BufferedImage.TYPE_BYTE_GRAY);
+      BufferedImage shadowImage = new BufferedImage(width * height / k, 1, BufferedImage.TYPE_BYTE_GRAY);
       shadowImage.setData(Raster.createRaster(shadowImage.getSampleModel(), new DataBufferByte(shadowData, shadowData.length), new Point()));
       shadows.add(new ShadowImage(shadowImage, order, seed, width, height));
     }

@@ -21,6 +21,10 @@ public class BMPManager {
     assert bytes[0] == 'B' && bytes[1] == 'M';
   }
 
+  public File getFile() {
+    return file;
+  }
+
   public void setReservedZone1(int value) {
     bytes[6] = (byte) (value & 0xFF);
     bytes[7] = (byte) (value >> 8);
