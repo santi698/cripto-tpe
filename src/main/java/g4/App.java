@@ -20,6 +20,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.lang3.ArrayUtils;
 
 import g4.crypto.ImageObfuscator;
 import g4.crypto.ShadowCombinator;
@@ -47,9 +48,8 @@ public class App {
 
     switch(mode) {
       case DISTRIBUTE:
-        seed = new Random().nextInt();
+        seed = new Random().nextInt(256);
         BufferedImage image = ImageIO.read(secretFile);
-        Images.displayImage(image);
         BufferedImage obfuscatedImage = obfuscateImage(image, seed);
         List<BufferedImage> generatedShadows = new ShadowGenerator(k, n).generateShadows(obfuscatedImage);
         List<ShadowImage> shadowsWithMetadata = new ArrayList<>(n);
@@ -58,7 +58,7 @@ public class App {
           shadowsWithMetadata.add(shadowNumber, new ShadowImage(shadow, shadowNumber + 1, seed, image.getWidth(), image.getHeight()));
         }
         saveShadows(shadowsWithMetadata, dir);
-        System.exit(0);
+        break;
       case RETRIEVE:
         List<ShadowImage> shadows = recoverShadows(dir);
         int width = shadows.get(0).getOriginalWidth();
@@ -71,18 +71,29 @@ public class App {
   }
 
   private static void saveShadows(List<ShadowImage> shadows, File dir) throws IOException {
-    assert dir.listFiles().length ==  shadows.size();
+    assert dir.listFiles().length == shadows.size();
+    BufferedImage sampleShadow = shadows.get(0).getImage();
+    int minimumSize = sampleShadow.getWidth() * sampleShadow.getHeight() * shadows.size() / 8;
     LSBHider hider = new LSBHider();
     int  shadowIndex = 0;
     List<BMPManager> bmpManagers = new ArrayList<>(shadows.size());
     for (File file : dir.listFiles()) {
       if(FilenameUtils.getExtension(file.getName()).equals("bmp")) {
-        bmpManagers.add(new BMPManager(file));
+        BMPManager manager = new BMPManager(file);
+        if (manager.getWidth() * manager.getHeight() < minimumSize) {
+          continue;
+        }
+        bmpManagers.add(manager);
       }
+    }
+    if (bmpManagers.size() < shadows.size()) {
+      System.err.println("Se necesitan al menos " + shadows.size() + " en el directorio de destino");
+      System.exit(1);
     }
     for (BMPManager bmpManager : bmpManagers) {
       byte[] carrierImageData = bmpManager.getImageData();
       ShadowImage currentShadow = shadows.get(shadowIndex);
+      
       bmpManager.setReservedZone1(currentShadow.getSeed());
       bmpManager.setReservedZone2(currentShadow.getOrder());
       BufferedImage currentShadowData = shadows.get(shadowIndex).getImage();
@@ -93,6 +104,11 @@ public class App {
       }
       shadowIndex++;
       bmpManager.setImageData(carrierImageData);
+      try {
+        bmpManager.writeToFile();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
     }
   }
 

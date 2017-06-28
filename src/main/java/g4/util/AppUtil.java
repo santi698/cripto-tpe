@@ -110,24 +110,20 @@ public class AppUtil {
         File secretFile = null;
 
         try {
-
             secretFile = Paths.get(cmd.getOptionValue("secret")).toFile().getCanonicalFile();
-
             if (!FilenameUtils.getExtension(secretFile.getName()).equals("bmp")) {
                 System.err.println("-secret parameter must be a bmp file");
                 System.exit(1);
             }
-
-            BufferedImage image = ImageIO.read(secretFile);
-
         } catch (IOException e) {
+            e.printStackTrace();
+            System.err.println("Secret file not found.");
             if (mode == "d") {
                 System.err.println("Secret file not found.");
             }
             System.exit(1);
         }
-
-        return  secretFile;
+        return secretFile;
     }
 
 

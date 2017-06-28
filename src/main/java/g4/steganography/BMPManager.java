@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import org.apache.commons.lang3.ArrayUtils;
 
 public class BMPManager {
   byte[] bytes;
@@ -20,16 +21,14 @@ public class BMPManager {
     assert bytes[0] == 'B' && bytes[1] == 'M';
   }
 
-  public void setReservedZone1(int value) throws IOException {
+  public void setReservedZone1(int value) {
     bytes[6] = (byte) (value & 0xFF);
     bytes[7] = (byte) (value >> 8);
-    Files.write(file.toPath(), bytes);
   }
 
-  public void setReservedZone2(int value) throws IOException {
+  public void setReservedZone2(int value) {
     bytes[8] = (byte) (value & 0xFF);
     bytes[9] = (byte) (value >> 8);
-    Files.write(file.toPath(), bytes);
   }
 
   public int getWidth() {
@@ -48,7 +47,7 @@ public class BMPManager {
     return getLittleEndianShort(8);
   }
 
-  public byte[] getImageData() throws IOException {
+  public byte[] getImageData() {
     int offset = getLittleEndianInteger(10);
     return Arrays.copyOfRange(bytes, offset, bytes.length);
   }
@@ -56,6 +55,10 @@ public class BMPManager {
   public void setImageData(byte[] imageData) {
     int offset = getLittleEndianInteger(10);
     System.arraycopy(imageData, 0, bytes, offset, imageData.length);
+  }
+
+  public void writeToFile() throws IOException {
+    Files.write(file.toPath(), bytes);
   }
   private int getLittleEndianShort(int index) {
     return (bytes[index] & 0xFF) + ((bytes[index + 1] & 0xFF) << 8);
@@ -69,7 +72,9 @@ public class BMPManager {
   }
 
   public static void main(String[] args) throws Exception {
-    BMPManager manager = new BMPManager(Paths.get("src/main/resources/sin_secreto/Alfred.bmp").toFile());
-    System.out.println(manager.getImageData().length);
+    BMPManager manager = new BMPManager(Paths.get("/tmp/Alfred.bmp").toFile());
+    byte[] imageData = manager.getImageData();
+    ArrayUtils.reverse(imageData);
+    manager.setImageData(imageData);
   }
 }

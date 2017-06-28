@@ -88,7 +88,6 @@ public class ShadowCombinator {
     int seed = 1;
     ImageObfuscator obfuscator = new ImageObfuscator(seed);
     BufferedImage image = ImageIO.read(Paths.get("src/main/resources/sin_secreto/Alfred.bmp").toFile());
-    Images.displayImage(obfuscator.obfuscate(image));
     BufferedImage obfuscatedImage = obfuscator.obfuscate(image);
     List<BufferedImage> generatedShadows = new ShadowGenerator(r, n).generateShadows(obfuscatedImage);
     List<ShadowImage> shadows = new ArrayList<>(r);
