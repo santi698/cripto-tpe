@@ -1,5 +1,15 @@
 # Secreto Compartido en Imágenes con Esteganografía
 
+## Descripción
+
+Se ha realizado una implementación del algoritmo de Secreto Compartido en Imágenes descripto en los papers “An Efficient Secret Image Sharing Scheme” (Luang-Shyr Wu y Tsung-Ming) y “Secret image Sharing” (Thien y Lin), basados en el método de Secreto Compartido desarrollado por Adi Shamir y George Blakley.
+El programa fue realizado en Java y cuenta con las siguientes funcionalidades:
+
+1. Distribuye una imagen secreta de extensión “.bmp” en otras imágenes también de extensión “.bmp” que constituyen las sombras en un esquema (k, n) de secreto compartido. 
+
+2. Recupera una imagen secreta de extensión “.bmp” a partir de k imágenes, también de extensión “.bmp”
+
+
 ## Instalación y Dependencias
 
 El programa ha sido desarrollado en Java utilizando Gradle como controlador de dependencias. Es por ésto que para una correcta ejecución es necesario instalar dicha build tool. Hacerlo de la siguiente manera:
